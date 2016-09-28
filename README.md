@@ -6,13 +6,14 @@ Beotorch is a website that allows you to simulate your World of Warcraft charact
 ## What is SimulationCraft?
 From the SimulationCraft GitHub Page:
 
-SimulationCraft is a tool to explore combat mechanics in the popular MMO RPG World of Warcraft (tm).
+>SimulationCraft is a tool to explore combat mechanics in the popular MMO RPG World of Warcraft (tm).
+>
+>It is a multi-player event driven simulator written in C++ that models player character damage-per-second in various raiding scenarios.
+>
+>Increasing class synergy and the prevalence of proc-based combat modifiers have eroded the accuracy of traditional calculators that rely upon closed-form approximations to model very complex mechanics. The goal of this simulator is to close the accuracy gap while maintaining a performance level high enough to calculate relative stat weights to aid gear selection.
+>
+>SimulationCraft allows raid/party creation of arbitrary size, generating detailed charts and reports for both individual and raid performance.
 
-It is a multi-player event driven simulator written in C++ that models player character damage-per-second in various raiding scenarios.
-
-Increasing class synergy and the prevalence of proc-based combat modifiers have eroded the accuracy of traditional calculators that rely upon closed-form approximations to model very complex mechanics. The goal of this simulator is to close the accuracy gap while maintaining a performance level high enough to calculate relative stat weights to aid gear selection.
-
-SimulationCraft allows raid/party creation of arbitrary size, generating detailed charts and reports for both individual and raid performance.
 In short, SimulationCraft plays your character through a theoretical encounter thousands of times and reports back the average results.
 
 ## How does Beotorch work?
