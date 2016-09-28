@@ -1,0 +1,261 @@
+<?php
+
+include_once $_SERVER['DOCUMENT_ROOT'] . '/Models/User.php';
+include_once $_SERVER['DOCUMENT_ROOT'] . '/includes/database_connect.php';
+include_once $_SERVER['DOCUMENT_ROOT'] . '/includes/functions.php';
+
+/**
+ * UserRepository
+ */
+class UserRepository {
+    
+    protected $mysqli;
+    protected $session;
+    
+    function UserRepository($mysqli, $session)
+    {
+        $this->mysqli = $mysqli;
+        $this->session = $session;
+    }
+    
+    //Checks to see if a user is logged in. If so, returns that account's User object, if not, returns false
+    function IsUserLoggedIn() {        
+        // Check if all session variables are set 
+                
+        if ($this->session->get('user_id') 
+            && $this->session->get('email') 
+            && $this->session->get('login_string'))
+        {
+
+            $user_id = $this->session->get('user_id');
+            $login_string = $this->session->get('login_string');
+            $email = $this->session->get('email');
+
+            // Get the user-agent string of the user.
+            $user_browser = $_SERVER['HTTP_USER_AGENT'];
+
+            $this->mysqli->query("SET @UserId = '" . $this->mysqli->real_escape_string($user_id) . "'");
+
+            $User = $this->UserGet($user_id);
+            
+            if ($User->Email != "")
+            {
+                $login_check = hash('sha512', $User->Password . $user_browser);
+
+                if ($login_check == $login_string)
+                {
+                    // Logged In
+                    return $User;
+                }
+                else
+                {
+                    // Not logged in 
+                    // We record this attempt in the database
+                    $this->mysqli->query("CALL LoginAttemptInsert(@UserId, 2, @IPAddress);");
+                    return false;
+                }
+            }
+            else
+            {
+                // Not logged in 
+                // We record this attempt in the database
+                $this->mysqli->query("CALL LoginAttemptInsert(@UserId, 3, @IPAddress);");
+                return false;
+            }
+        }
+        else
+        {
+            // Not logged in 
+            return false;
+        }
+    }
+    
+    function UserGet($userId, $userEmail = null)
+    { 
+        $User = new User();
+        
+		if ($stmt = $this->mysqli->prepare("CALL UserGet(?, ?)"))
+		{
+			// Bind "$user_id" to parameter. 
+			$stmt->bind_param('is', $userId, $userEmail);
+			$stmt->execute();   // Execute the prepared query.
+			$stmt->store_result(); 
+ 
+			if ($stmt->num_rows == 1)
+			{
+				$userAccount = fetchMysqlRows($stmt); 
+				clearStoredResults($this->mysqli);
+                
+                $User = $this->FillUserObject($userAccount[0]);
+			}
+		}
+        
+        return $User;
+    }
+    
+    function UserPasswordResetCodeSet($userId, $resetCode)
+    {
+        if ($userId > 0)
+        {
+            if ($stmt = $this->mysqli->prepare("CALL UserPasswordResetCodeSet(?, ?)"))
+            {
+                // Bind "$user_id" to parameter. 
+                $stmt->bind_param('is', $userId, $resetCode);
+                $stmt->execute();   // Execute the prepared query.
+                $stmt->store_result();
+                if ($stmt->num_rows == 1)
+                {
+                    $resetResult = fetchMysqlRows($stmt);
+
+                    clearStoredResults($this->mysqli);	
+
+                    return $resetResult;				
+                }
+                else
+                {
+                    clearStoredResults($this->mysqli);
+
+                    return null;
+                }
+            }
+        }
+    }
+    
+    function UserPasswordReset($userId = null, $userEmail = null, $resetCode = null, $newPassword = null, $newSalt = null)
+    {
+        if ($stmt = $this->mysqli->prepare("CALL UserPasswordReset(?, ?, ?, ?, ?)"))
+        {
+            // Bind "$user_id" to parameter. 
+            $stmt->bind_param('issss', $userId, $userEmail, $resetCode, $newPassword, $newSalt);
+            $stmt->execute();   // Execute the prepared query.
+            $stmt->store_result();
+            
+            if ($stmt->num_rows == 1)
+            {
+                // If the user exists get variables from result.
+                $passwordResult = fetchMysqlRows($stmt);
+                clearStoredResults($this->mysqli);	
+
+                $User = $this->FillUserObject($passwordResult[0]);                
+                
+                return $User;
+            }
+            else
+            {
+                clearStoredResults($this->mysqli);
+
+                return null;
+            }
+        }
+    }
+    
+    function UserUpdate($userId, $simEmail)
+    {
+        if ($stmt = $this->mysqli->prepare("CALL UserUpdate(?, ?)"))
+        {
+            // Bind "$user_id" to parameter. 
+            $stmt->bind_param('ii', $userId, $simEmail);
+            $stmt->execute();   // Execute the prepared query.
+            $stmt->store_result();
+
+            if ($stmt->num_rows == 1)
+            {
+                // If the user exists get variables from result.
+                $userAccount = fetchMysqlRows($stmt);
+                clearStoredResults($this->mysqli);	
+                
+                $User = $this->FillUserObject($userAccount[0]);
+                
+                return $User;				
+            }
+            else
+            {
+                clearStoredResults($this->mysqli);
+
+                return null;
+            }
+        }
+    }
+    
+    function FillUserObject($user)
+    {
+        $obj = new User();
+        
+        foreach ($user as $key => $value)
+        {
+            switch (strtoupper($key))
+            {
+                case "USERID":
+                    $obj->UserId = $value;
+                    break;
+                case "EMAIL":
+                    $obj->Email = $value;
+                    break;
+                case "PASSWORD":
+                    $obj->Password = $value;
+                    break;
+                case "SALT":
+                    $obj->Salt = $value;
+                    break;
+                case "ISACTIVE":
+                    $obj->IsActive = $value;
+                    break;
+                case "ACTIVATIONCODE":
+                    $obj->ActivationCode = $value;
+                    break;
+                case "SIMEMAILS":
+                    $obj->SimEmails = $value;
+                    break;
+                case "PASSWORDRESETCODE":
+                    $obj->PasswordResetCode = $value;
+                    break;
+                case "USERLEVELID":
+                    $obj->UserLevelId = $value;
+                    break;
+                case "USERLEVELTITLE":
+                    $obj->UserLevelTitle = $value;
+                    break;
+                case "USERLEVELDESCRIPTION":
+                    $obj->UserLevelDescription = $value;
+                    break;
+                case "DAYSBEFORECLEANUP":
+                    $obj->DaysBeforeCleanup = $value;
+                    break;
+                case "MAXITERATIONS":
+                    $obj->MaxIterations = $value;
+                    break;
+                case "MAXSIMQUEUESIZE":
+                    $obj->MaxSimQueueSize = $value;
+                    break;
+                case "MINSIMLENGTH":
+                    $obj->MinSimLength = $value;
+                    break;
+                case "MAXSIMLENGTH":
+                    $obj->MaxSimLength = $value;
+                    break;
+                case "SCALINGENABLED":
+                    $obj->ScalingEnabled = $value;
+                    break;
+                case "MAXREPORTS":
+                    $obj->MaxReports = $value;
+                    break;
+                case "MAXBOSSCOUNT":
+                    $obj->MaxBossCount = $value; 
+                    break;
+                case "MAXACTORS":
+                    $obj->MaxActors = $value; 
+                    break;
+                case "HIDDENSIMULATIONS":
+                    $obj->HiddenSimulations = $value; 
+                    break;
+                case "CUSTOMPROFILE":
+                    $obj->CustomProfile = $value; 
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        return $obj;
+    }    
+}

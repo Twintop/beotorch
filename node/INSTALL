@@ -1,0 +1,80 @@
+BEOTORCH - NEW NODE SETUP (DEBIAN)
+
+sudo apt-get install -y cpan
+sudo apt-get install -y gcc g++
+sudo apt-get install -y build-essential
+sudo apt-get install -y libssl-dev
+sudo apt-get install -y git
+
+sudo cpan
+	force install LWP::Simple
+	force install LWP::UserAgent
+	force install LWP::Protocol::https
+	force install Config::Simple
+	force install JSON
+	force install File::Slurp
+	force install Net::SSLeay
+	
+mkdir beotorch
+cd beotorch
+	Move processworkitem.pl, processworkitem.config, and processworkitem.sh in to this folder}
+
+chmod 775 processworkitem.*
+
+***EDIT processworkitem.config to match settings
+	APIKey
+	Threads
+	Directory
+	
+***EDIT processworkitem.sh to reflect the correct directory:
+	(cd /home/{FOLDER}/beotorch && perl processworkitem.pl) &
+
+***IF THIS NODE WILL DO LEGION BETA AS WELL (OR LEGION AT ALL) AND ONLY HAS g++ 4.8 AVAILABLE (i.e.: Linux Mint 17.3):
+
+http://stackoverflow.com/questions/33458208/install-g-4-9-on-mint-17-2/33481438
+
+	***NEED g++ 4.9 or higher:
+	sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+	sudo apt-get update
+
+	sudo update-alternatives --remove-all gcc 
+	sudo update-alternatives --remove-all g++
+
+	sudo apt-get install -y gcc-4.9
+	sudo apt-get install -y g++-4.9
+
+	sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 20
+	sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 20
+	sudo update-alternatives --config gcc
+	sudo update-alternatives --config g++
+
+	sudo apt-get update
+	sudo apt-get upgrade -y
+	sudo apt-get dist-upgrade
+	
+***FOR 'make optimized', replace '-j 2' with '-j <threads available>' for faster compliation
+
+mkdir simc-legion
+cd simc-legion
+git clone -b legion-dev https://github.com/simulationcraft/simc.git
+git init
+git pull https://github.com/simulationcraft/simc legion-dev && git checkout
+cd simc
+cd engine
+make optimized LTO=1 -j {THREADS}
+cp simc ~/beotorch/simc
+crontab -e
+
+***ADD TO BOTTOM
+*/1 * * * * /home/{FOLDER}/beotorch/processworkitem.sh >> /home/{FOLDER}/beotorch/processlog 2>&1
+
+
+******OUTDATED******
+
+git clone https://github.com/simulationcraft/simc.git
+cd simc
+cd engine
+make optimized OPENSSL=1 LTO=1 -j 2
+cp simc ~/beotorch
+
+

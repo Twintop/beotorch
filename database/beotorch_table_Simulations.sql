@@ -1,0 +1,26 @@
+
+CREATE TABLE `Simulations` (
+  `SimulationId` int(10) UNSIGNED NOT NULL,
+  `SimulationName` varchar(255) NOT NULL,
+  `SimulationGUID` varchar(38) NOT NULL,
+  `UserId` int(10) UNSIGNED NOT NULL,
+  `SimulationTypeId` tinyint(4) NOT NULL DEFAULT '1',
+  `BossCount` tinyint(3) UNSIGNED NOT NULL DEFAULT '1',
+  `Iterations` int(10) UNSIGNED NOT NULL DEFAULT '5000',
+  `SimulationLength` smallint(5) UNSIGNED NOT NULL DEFAULT '450',
+  `SimulationLengthVariance` float UNSIGNED NOT NULL DEFAULT '0.2',
+  `ScaleFactors` tinyint(1) UNSIGNED NOT NULL,
+  `TimeQueued` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `TimeCompleted` timestamp NULL DEFAULT NULL,
+  `SimulationRawLog` mediumtext,
+  `ReportArchived` tinyint(1) NOT NULL DEFAULT '0',
+  `TimeArchived` timestamp NULL DEFAULT NULL,
+  `TMIWindow` tinyint(3) UNSIGNED DEFAULT NULL,
+  `TMIBoss` varchar(4) DEFAULT NULL,
+  `IsHidden` tinyint(1) UNSIGNED NOT NULL DEFAULT '0',
+  `CustomProfile` mediumtext NOT NULL,
+  `SimulationCraftVersion` varchar(4) NOT NULL DEFAULT 'live',
+  `GameVersion` varchar(10) NOT NULL DEFAULT '7.0.3',
+  `SimulationArchived` tinyint(1) UNSIGNED NOT NULL DEFAULT '0',
+  `SimulationTimeArchived` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

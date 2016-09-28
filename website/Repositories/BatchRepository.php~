@@ -1,0 +1,151 @@
+<?php
+
+include_once $_SERVER['DOCUMENT_ROOT'] . '/Models/Batch.php';
+include_once $_SERVER['DOCUMENT_ROOT'] . '/includes/database_connect.php';
+include_once $_SERVER['DOCUMENT_ROOT'] . '/includes/functions.php';
+include_once $_SERVER['DOCUMENT_ROOT'] . '/Repositories/SimulationRepository.php';
+
+/**
+ * BatchRepository
+ */
+
+class BatchRepository {
+    
+    protected $mysqli;
+    protected $session;
+    protected $SimulationRepository;
+    
+    function BatchRepository($mysqli, $session, $simulationRepository)
+    {
+        $this->mysqli = $mysqli;
+        $this->session = $session;
+        $this->SimulationRepository = $simulationRepository;
+    }
+    
+    function BatchList($userId = -1)
+    {
+        if ($userid > 0)
+        {
+            $user_id = $userid;
+        }
+        elseif (($userid == -1 || $userid == null) && $this->session->get('user_id'))
+        {
+            $user_id = $this->session->get('user_id');
+        }
+        else
+        {
+            $user_id = 0;
+        }
+        
+        if ($stmt = $this->mysqli->prepare("CALL BatchList(?)"))
+        {
+            $stmt->bind_param('i', $user_id);
+            
+            $stmt->execute();   // Execute the prepared query.
+            $stmt->store_result();
+
+            $BatchesList = array();
+            
+            if ($stmt->num_rows > 0)
+            {
+                $batchList = fetchMysqlRows($stmt);
+                clearStoredResults($this->mysqli);	
+
+                foreach ($batchList as $batch)
+                {                    
+                    $BatchItem = $this->FillBatchObject($batch);
+                    
+                    $BatchesList[] = $BatchItem;
+                }
+            }
+            else
+            {
+                clearStoredResults($this->mysqli);
+            }
+            return $BatchesList;
+        }        
+    }
+    
+    function BatchGet($batchId)
+    {        
+		$results = multiQuery($this->mysqli, "CALL BatchGet('" . $batchId . "')");
+        
+        if ($results[0] != null)
+        {
+            return $this->FillBatchObjectFromParams($results[0][0], $results[1], $results[2]);
+        }
+        else
+        {
+            return false;
+        }
+    }  
+    
+    function BatchGetByGUID($batchGUID)
+    {      
+        if (validateGUID($batchGUID))
+        {
+            $results = multiQuery($this->mysqli, "CALL BatchGetByGUID('" . $batchGUID . "')");
+
+            if ($results[0] != null)
+            {
+                return $this->FillBatchObjectFromParams($results[0][0], $results[1], $results[2]);
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }   
+    
+    function FillBatchObjectFromParams($batchArray, $simulationArray, $actorsArray)
+    {        
+        $Batch = $this->FillBatchObject($batchArray);
+        
+        foreach ($simulationArray as $simEntry)
+        {        
+            $simId = $simEntry["SimulationId"];
+            $simActors = array_filter($actorsArray, function ($e) use($simId) {
+                return $e["SimulationId"] == $simId;
+            });
+            
+            $sim = $this->SimulationRepository->FillSimulationObjectFromParams($simEntry, $simActors, null);
+                    
+            $Batch->Simulations[] = $sim;
+        }
+        
+        return $Batch;
+    }
+    
+    protected function FillBatchObject($batch)
+    {
+        $obj = new Batch();
+        
+        foreach ($batch as $key => $value)
+        {
+            switch (strtoupper($key))
+            {
+                case "BATCHID":
+                    $obj->BatchId = $value;
+                    break;
+                case "BATCHGUID":
+                    $obj->BatchGUID = $value;
+                    break;
+                case "BATCHNAME":
+                    $obj->BatchName = $value;
+                    break;
+                case "USERID":
+                    $obj->UserId = $value;
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        return $obj;
+    }
+    
+}

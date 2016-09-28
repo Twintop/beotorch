@@ -1,0 +1,28 @@
+<ifmodule mod_expires.c>
+    <FilesMatch "\.(ico|pdf|flv|jpg|jpeg|png|gif|js|css|swf|html)(\.gz)?$">
+        Header set Expires "access plus 1 week"
+        Header unset Pragma
+        Header unset ETag
+        FileETag None
+    </FilesMatch>
+</ifmodule>
+<ifmodule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/text text/html text/plain text/xml text/css application/x-javascript application/javascript text/javascript
+    <filesMatch "\.(js|css|html|php)$">
+        SetOutputFilter DEFLATE
+    </filesMatch>
+</ifmodule>
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{SERVER_PORT} 443
+    RewriteCond %{REQUEST_URI} warehouse-old
+    RewriteRule ^(.*)$ http://www.beotorch.com/warehouse-old/$1 [R,L]
+    RewriteCond %{SERVER_PORT} 80 
+    RewriteCond %{REQUEST_URI} !warehouse-old
+    RewriteRule ^(.*)$ https://www.beotorch.com/$1 [R,L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule api/(.*)$ api/api_v1.php?request=$1 [QSA,NC]
+    RewriteRule battlenet/(.*)$ api/battlenet.php?request=$1 [QSA,NC,L]
+    RewriteRule beotorch/(.*)$ api/site.php?request=$1 [QSA,NC,L]
+</IfModule>
